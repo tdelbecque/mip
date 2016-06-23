@@ -1,0 +1,102 @@
+drop table if exists CompaniesPerformances;
+create table CompaniesPerformances (
+       CompanyId	integer,
+	CompanyName	varchar,
+	CompanyLegalName	varchar,
+	Address1	varchar,
+	Address2	varchar,
+	Address3	varchar,
+	City	varchar,
+	SubRegion	varchar,
+	Country	varchar,
+	PostCode	varchar,
+	Phone	varchar,
+	Fax	varchar,
+	CompanyEmail	varchar,
+	CompanyProfileURL	varchar,
+	Headline	varchar,
+	CompanyDescription	varchar,
+	CompanyPrintedDescription	varchar,
+	StandReference	varchar,
+	PackageName	varchar,
+	PrimaryContactFirstName	varchar,
+	PrimaryContactLastName	varchar,
+	PrimaryContactEmail	varchar,
+	IsPublished	varchar,
+	ProfileStatus	varchar,
+	ProfileType	varchar,
+	ParentID	varchar,
+	ParentName	varchar,
+	HasCompanyLogo	varchar,
+	NumberCompanyCategoryCount		integer,
+	NumberCompanyCategoryEntitled		integer,
+	NumberProductsUploaded			integer,
+	NumberPublishedProductsUploaded		integer,
+	NumberProductsEntitled			integer,
+	NumberProductsHighlighted		integer,
+	NumberProductHighlightedEntitled	integer,
+	NumberProductCategoryCount		integer,
+	NumberProductCategoryEntitled		integer,
+	NumberSocialMediaAdded			integer,
+	NumberSocialMediaEntitled		integer,
+	NumberContacts				integer,
+	NumberContactsEntitled			integer,
+	NumberParticipantsAssociated		integer,
+	NumberCompanyDocumentsUploaded		integer,
+	NumberCompanyDocumentsEntitled		integer,
+	NumberCompanyVideosUploaded		integer,
+	NumberCompanyVideosUploadedEntitled	integer,
+	NumberSharers				integer,
+	NumberSharersEntitled			integer,
+	ListLanguagesEnabled			varchar,
+	DateCreated				varchar,
+	DateModified				varchar,
+	CompanyProfileLink			varchar,
+	NumberProfilePageViews			integer,
+	NumberProductPageViews			integer,
+	NumberCompanyDocumentDownload		integer,
+	NumberCompanyVideoView			integer,
+	NumberCompanyEnquiries			integer,
+	NumberWebsiteReferrals			integer,
+	NumberShortlistedProfiles		integer,
+	NumberShortlistedProducts		integer,
+	NumberCustomerLeads			integer,
+	CompanyBrandPageViews			integer,
+	NumberShortlistedCompanyBrands		integer,
+	CompanyBrochurePageViews		integer,
+	NumberShortlistedCompanyBrochures	integer,
+	CompanyCaseStudyPageViews		integer,
+	NumberShortlistedCompanyCaseStudys	integer,
+	CompanyDataSheetPageViews		integer,
+	NumberShortlistedCompanyDataSheets	integer,
+	CompanyEventPageViews			integer,
+	NumberShortlistedCompanyEvents		integer,
+	CompanyJobVacancyPageViews		integer,
+	NumberShortlistedCompanyJobVacancys	integer,
+	CompanyOnSiteSpecialPageViews		integer,
+	NumberShortlistedCompanyOnSiteSpecials	integer,
+	CompanyPresentationPageViews		integer,
+	NumberShortlistedCompanyPresentations	integer,
+	CompanyPressReleasePageViews		integer,
+	NumberShortlistedCompanyPressReleases	integer,
+	CompanyWhitePaperPageViews		integer,
+	NumberShortlistedCompanyWhitePapers	integer,
+	DelegatePageViews			integer,
+	NumberShortlistedDelegates		integer,
+	dummy 					char(1));
+
+drop table if exists CompaniesPerformances_2013;
+create table CompaniesPerformances_2013 as table CompaniesPerformances with no data;
+
+\copy CompaniesPerformances_2013 from '/home/thierry/MIP/03_Company and Individual Information/2013/Company_Uptake_and_Performance_Report_MIPJunior_2013_160414135933.Csv' with CSV delimiter ',' quote '"' HEADER;
+
+drop table if exists CompaniesPerformances_2014;
+create table CompaniesPerformances_2014 as table CompaniesPerformances with no data;
+
+\copy CompaniesPerformances_2014 from '/home/thierry/MIP/03_Company and Individual Information/2014/Company_Uptake_and_Performance_Report_MIPJunior_2014_160414135146.Csv' with CSV delimiter ',' quote '"' HEADER;
+
+drop table if exists CompaniesPerformances_2015;
+create table CompaniesPerformances_2015 as table CompaniesPerformances with no data;
+
+\copy CompaniesPerformances_2015 from '/home/thierry/MIP/03_Company and Individual Information/2015/Company_Uptake_and_Performance_Report_MIPJunior_2015.csv' with CSV delimiter ',' quote '"' HEADER;
+
