@@ -55,3 +55,8 @@ create table reelport_2015 as (select * from reelport_2015_online union select *
 alter table reelport_2015 add column screensec smallint;
 update reelport_2015 set screensec = time2sec (totalscreeningtime);
 
+alter table reelport_2014 add column screensec smallint;
+update reelport_2014 set screensec = time2sec (totalscreeningtime);
+
+alter table reelport_2013 add column screensec smallint;
+update reelport_2013 set screensec = time2sec (totalscreeningtime);
