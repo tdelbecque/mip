@@ -35,7 +35,11 @@ begin
 end
 $$ language plpgsql;
 
-create or replace function create_fullrecoranked_2015 (ranking text) returns void as $$
+--
+--
+--
+
+create or replace function create_fullrecoranked_2015 () returns void as $$
 begin
 	drop table if exists fullrecoranked_2015;
 
@@ -63,6 +67,33 @@ begin
 end
 $$ language plpgsql;
 
+--
+--
+--
+
+create or replace function reco4reelport (tablename text, nbreco integer) returns setof text as $$
+declare
+	querytext text := $Q$
+	         select array_to_string (
+       	             		      array_cat (
+				      		ARRAY[buyerid, ka]::integer[],
+       	      		      			array_agg(kb order by rnk)::integer[]),
+					',') as reco
+		from %I
+		where rnk <= $1
+		group by buyerid, ka
+		order by buyerid, ka
+		$Q$;
+begin
+	return query execute format (querytext, tablename) using nbreco;
+	return;
+end
+$$ language plpgsql;
+
+--
+--
+--
+
 create or replace function create_recoranked_2015_top100 () returns void as $$
 begin
 	drop table if exists recoranked_2015_top100;
@@ -71,7 +102,11 @@ begin
 end
 $$ language plpgsql;
 
-create or replace function foobarzob (output_table text, ranking text) returns void as $$
+--
+--
+--
+
+create or replace function create_fullrecoranked_2015 (output_table text, ranking text) returns void as $$
 declare
 	flag boolean;
 	querytxt text :=
@@ -90,5 +125,55 @@ begin
 	end if;
 	execute format('drop table if exists %I', output_table);
 	execute format(querytxt, output_table, ranking);
+end
+$$ language plpgsql;
+
+/*
+select create_fullrecoranked_2015 ('reco_n_fitness', 'n desc, fitness desc');
+\copy (select * from reco4reelport('reco_n_fitness', 100)) to 'panelreco_list1.csv';
+select create_fullrecoranked_2015 ('reco_fitness_n', 'fitness desc, n desc');
+\copy (select * from reco4reelport('reco_fitness_n', 100)) to 'panelreco_list2.csv';
+
+select create_fullreco_nocontext_2015 ();
+select create_fullrecoranked_nocontext_2015 ();
+\copy (select * from reco4reelport ('fullrecoranked_nocontext_2015', 100)) to 'panelreco.1/panelreco_nocontext.csv';
+
+*/
+
+create or replace function create_fullreco_nocontext_2015 () returns void as $$
+begin
+
+	drop table if exists fullreco_nocontext_2015;
+	drop index if exists i_fullreco_nocontext_2015;
+
+	create table fullreco_nocontext_2015 as (
+	-- build a possible reco for (buyerid)
+	       select A.buyerid,
+	              0::integer as ka,		-- entry product
+	      	      A.screeningnumber as kb,-- possible reco
+	      	      0::integer as n,	-- coscreen of the 2 products
+	      	      A.fitness,	-- of buyer with kb
+	      	      random () as tiebreaker
+       		from panel_fitness A
+		     -- buyers_products_fitness A,
+		);
+	analyse fullreco_nocontext_2015;
+	create index i_fullreco_nocontext_2015 on fullreco_nocontext_2015(buyerid);
+end
+$$ language plpgsql;
+
+--
+--
+--
+
+create or replace function create_fullrecoranked_nocontext_2015 () returns void as $$
+begin
+	drop table if exists fullrecoranked_nocontext_2015;
+
+	create table fullrecoranked_nocontext_2015 as (
+       	       select *,
+       	       	      rank () over (partition by buyerid
+		      	      	    order by fitness desc, tiebreaker) as rnk
+       		from fullreco_nocontext_2015);
 end
 $$ language plpgsql;
