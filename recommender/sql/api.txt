@@ -1,0 +1,35 @@
+utils.sql
+
+init () -> void
+array_intersect (anyarray, anyarray) -> anyarray
+array_union (anyarray, anyarray) -> anyarray
+array_jaccard (anyarray, anyarray) -> real
+array_lintersect (anyarray, anyarray) -> integer
+normstr (varchar) -> varchar
+str_similarity (varchar, varchar) -> varchar
+time2sec (text) -> integer
+
+reelport.sql
+
+init_reelport () -> void
+create_reelport (text, text) -> void
+
+import_products.sql
+
+init_catalog () -> void
+create_products (text, text) -> void
+
+products-profiles.sql
+
+init_products_profiles () -> void
+create_products_profiles (text, text) -> void
+
+buyers_profiles.sql
+
+init_buyers_profiles () -> void
+create_buyers_profiles (text, text, text) -> void
+
+buyers_segments.sql
+
+init_buyers_segments () -> void
+create_segments_profiles (text, text, text) -> void
