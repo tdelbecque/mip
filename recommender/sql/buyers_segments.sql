@@ -1,9 +1,9 @@
-create or replace function init_buyers_segments () returns void as $$
+create or replace function init_buyers_segments () returns void as $init_buyers_segments$
        drop table if exists buyers_segments_pattern;
        create table buyers_segments_pattern (
        	      buyerid integer,
 	      segid   integer)
-$$ language sql;
+$init_buyers_segments$ language sql;
 
 create or replace function create_segments_profiles
 (

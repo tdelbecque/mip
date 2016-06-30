@@ -2,7 +2,7 @@
 --	buyers profiles
 --
 
-create or replace function init_buyers_profiles () returns void as $$
+create or replace function init_buyers_profiles () returns void as $init_buyers_profile$
        drop table if exists buyers_profiles_elem_pattern;
        create table buyers_profiles_elem_pattern (
               buyerid				  integer,
@@ -43,7 +43,7 @@ create or replace function init_buyers_profiles () returns void as $$
 	      p_girls			real
 	      );
               
-$$ language sql;
+$init_buyers_profiles$ language sql;
 
 --
 --	computes profile of the buyer by looking at his past

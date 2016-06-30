@@ -42,6 +42,14 @@ select create_products('catalog_2015', 'products_2015');
 create table products_2013_2015 as (select * from products_2013 union select * from products_2014 union select * from products_2015);
 alter table products_2013_2015 add primary key (screeningnumber);
 
+select create_products_profiles ('products_2013', 'products_profiles_2013');
+select create_products_profiles ('products_2014', 'products_profiles_2014');
+select create_products_profiles ('products_2015', 'products_profiles_2015');
+
+select create_products_similarities_from_profiles ('products_profiles_2013', 'products_cosim_2013');
+select create_products_similarities_from_profiles ('products_profiles_2014', 'products_cosim_2014');
+select create_products_similarities_from_profiles ('products_profiles_2015', 'products_cosim_2015');
+
 ------------------------------------------------------------------
 
 -- compute users profiles
@@ -49,3 +57,5 @@ alter table products_2013_2015 add primary key (screeningnumber);
 select create_buyers_profiles ('reelport_2013_2015', 'products_2013_2015', 'buyers_profiles_2013_2015');
 alter table buyers_profiles_2013_2015 add primary key (buyerid);
 
+
+select create_products_similarities_from_profiles ('products_profiles_2015', 'products_cosim_2015');

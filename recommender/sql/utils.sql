@@ -4,6 +4,8 @@ create or replace function init () returns void as $init$
        select init_buyers_profiles ();
        select init_reelport ();
        select init_buyers_segments ();
+       select init_products_profiles ();
+       select init_products_cosim ();
 $init$ language sql;
 
 CREATE OR REPLACE FUNCTION array_intersect(anyarray, anyarray)
