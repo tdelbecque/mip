@@ -1,4 +1,4 @@
-utils.sql
+** utils.sql
 
 init () -> void
 array_intersect (anyarray, anyarray) -> anyarray
@@ -9,27 +9,38 @@ normstr (varchar) -> varchar
 str_similarity (varchar, varchar) -> varchar
 time2sec (text) -> integer
 
-reelport.sql
+** reelport.sql
 
 init_reelport () -> void
-create_reelport (text, text) -> void
+create_activities (text, text) -> void
 
-import_products.sql
+** import_products.sql
 
 init_catalog () -> void
 create_products (text, text) -> void
 
-products-profiles.sql
+** products-profiles.sql
 
 init_products_profiles () -> void
 create_products_profiles (text, text) -> void
 
-buyers_profiles.sql
+** buyers_profiles.sql
 
 init_buyers_profiles () -> void
 create_buyers_profiles (text, text, text) -> void
 
-buyers_segments.sql
+** buyers_segments.sql
 
 init_buyers_segments () -> void
 create_segments_profiles (text, text, text) -> void
+
+** products-cosim.sql
+
+init_products_cosim () -> void
+create_products_similarities_from_profiles (text, text) -> void
+create_cousage (text, text) -> void
+merge_products_cosim_cousage (text, text, text) -> void
+
+** buyers-or-segment-products-similarities.sql
+
+create_buyers_or_segments_products_similarities (text, text, text) -> void
