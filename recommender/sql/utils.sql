@@ -66,3 +66,15 @@ BEGIN
 END;
 $BODY$
   LANGUAGE 'plpgsql';
+
+create or replace function my_array_diff (integer[], integer[]) returns integer[] as $$
+       my ($a1, $a2) = @_;
+       my %d = ();
+       $d {$_} = 1 for @$a2;
+       my @r = ();
+       for (@$a1) {
+       	   push @r, $_ unless defined $d {$_}
+       }
+       
+       return \@r;
+$$ language plperl;
