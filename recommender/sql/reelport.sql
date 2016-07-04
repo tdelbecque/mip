@@ -1,15 +1,16 @@
-create or replace function create_reelport
+create or replace function create_activities
 (
        IN reelport_table_in   text,
        IN activity_table_out  text
 )
-returns void as $create_reelport$
+returns void as $create_activities$
 declare
 	tmpl1 text :=
 	$tmpl1$
 	create table %s as (
 	       select buyerid,
 	       	      screeningid,
+		      playlisted,
 	       	      time2sec (totalscreeningtime) as screensec
 	       from %s)
 	$tmpl1$;
@@ -17,7 +18,7 @@ begin
 	execute format ('drop table if exists %s', activity_table_out);
 	execute format (tmpl1, activity_table_out, reelport_table_in);
 end
-$create_reelport$ language plpgsql;
+$create_activities$ language plpgsql;
 
 create or replace function init_reelport () returns void as $init_reelport$
        drop table if exists reelport_pattern;
@@ -44,7 +45,7 @@ create or replace function init_reelport () returns void as $init_reelport$
 	      Totalscreeningtime	varchar,
 	      Synopsis	varchar,
 	      Privatenotes	varchar,
-	      Playlisted	varchar,
+	      Playlisted	integer,
 	      Informationforseller	varchar,
 	      Sellercontactsalutation	varchar,
 	      Sellercontactfirstname	varchar,
