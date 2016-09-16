@@ -78,3 +78,37 @@ create or replace function my_array_diff (integer[], integer[]) returns integer[
        
        return \@r;
 $$ language plperl;
+
+create or replace function reco4reelport (tablename text, nbreco integer) returns setof text as $$
+declare
+	querytext text := $Q$
+	         select array_to_string (
+       	             		      array_cat (
+				      		ARRAY[buyerid, ka]::integer[],
+       	      		      			kbs[1:$1]),
+					',') as reco
+		from %I
+		order by buyerid, ka
+		$Q$;
+begin
+	return query execute format (querytext, tablename) using nbreco;
+	return;
+end
+$$ language plpgsql;
+
+create or replace function reco4reelport_seg0 (tablename text, nbreco integer) returns setof text as $$
+declare
+	querytext text := $Q$
+	         select array_to_string (
+       	             		      array_cat (
+				      		ARRAY[segid, ka]::integer[],
+       	      		      			kbs[1:$1]),
+					',') as reco
+		from %I
+		order by segid, ka
+		$Q$;
+begin
+	return query execute format (querytext, tablename) using nbreco;
+	return;
+end
+$$ language plpgsql;

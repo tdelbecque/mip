@@ -71,7 +71,8 @@ select merge_products_cosim_cousage ('products_cosim_0_2015', 'products_cousage_
 
 select create_buyers_or_segments_products_similarities ('segments_profiles', 'products_profiles_2015', 'segments_products_similarities_2015');
 
-create table reco1 as (select segid, ka, A.kb,  co_usage, co_sim, sim, random() as tiebreaker from products_cosim_2015 A , segments_products_similarities_2015 B where A.kb = B.kb);
+drop table if exists reco1;
+create table reco1 as (select segid, ka, A.kb,  co_usage, co_sim, sim, random() as tiebreaker from products_cosim_2015 A , segments_products_similarities_2015 B where A.kb = B.kb and A.ka != A.kb);
 
 create table reco2 as (select *, rank() over (partition by segid, ka order by co_usage desc, co_sim desc, sim desc, tiebreaker) as rnk from reco1);
 
@@ -88,3 +89,15 @@ alter table toucheditems add primary key (buyerid);
 create table reco5 as (select A.buyerid, case when touched is null then kbs else my_array_diff (kbs, touched) end as kbs from reco4 A left outer join  toucheditems B on (A.buyerid = B.buyerid));
 
 select * from (select buyerid, unnest(kbs)::integer kb from reco5) A, activities_2013_2015 B where substring (B.buyerid, 3)::integer = A.buyerid and A.kb = B.screeningid limit 10;
+
+-- segment 0
+-- create the rank value
+drop table if exists seg0reco2;
+create table seg0reco2 as
+(select *, rank () over (partition by ka order by co_usage desc, co_sim desc, tiebreaker) as rnk from
+(select *, random () as tiebreaker from products_cosim_2015 where ka != kb) A);
+
+-- gather values  in vectors
+drop table if exists seg0reco3;
+create table seg0reco3 as
+(select 0 as segid, ka, array_agg(kb order by rnk)::integer[] as kbs from seg0reco2 group by ka);
