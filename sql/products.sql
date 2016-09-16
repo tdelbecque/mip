@@ -1,94 +1,65 @@
-drop table if exists catalog_pattern;
+create or replace function create_products (y text) returns void as $fun$
+declare
+	products_table_name	text;
+	catalog_table_name	text;
+	languages_table_name	text;
+	platforms_table_name	text;
+	formats_table_name	text;
+begin
+	catalog_table_name := format ('catalog_%s', y);
+	products_table_name := format ('products_%s', y);
+	languages_table_name := format ('languages_%s', y);
+	platforms_table_name := format ('platforms_%s', y);
+	formats_table_name   := format ('formats_%s', y);
+	
+	execute format ('drop table if exists %s', products_table_name);
+	execute format ('create table %s as (
+		       		select P.* from %s as P,
+				       	   	(select max (productid) as i from %s group by screeningnumber) as Q
+					   where productid = i and screeningnumber is not null)',
+			products_table_name, catalog_table_name, catalog_table_name);
+	execute format ('alter table %s add primary key (screeningnumber)', products_table_name);
+	execute format ('alter table %s
+			       add column languages_arr text[],
+			       add column formats_arr text[],
+			       add column platforms_arr text[],
+			       add column freshyearprod smallint', products_table_name);
+	execute format ($$update %s set
+       		       		languages_arr	= regexp_split_to_array (languagesavailable, E' \\| '),
+       				platforms_arr   = regexp_split_to_array (SalesrightsPlatform, E' \\| '),
+       				formats_arr	= regexp_split_to_array (format, E' \\| '),
+       				freshyearprod 	= case
+       		     				  when position ('2017' in yearofproduction) > 0 then 2017 
+       		     				  when position ('2016' in yearofproduction) > 0 then 2016
+       						  when position ('2015' in yearofproduction) > 0 then 2015 
+       						  when position ('2014' in yearofproduction) > 0 then 2014 
+       						  when position ('2013' in yearofproduction) > 0 then 2013 
+       						  when position ('2012' in yearofproduction) > 0 then 2012 
+       						  when position ('2011' in yearofproduction) > 0 then 2011 
+       						  when position ('2010' in yearofproduction) > 0 then 2010
+       						  when position ('2009' in yearofproduction) > 0 then 2009
+       						  when position ('2008' in yearofproduction) > 0 then 2008
+       						  when position ('2007' in yearofproduction) > 0 then 2007
+       						  when position ('2006' in yearofproduction) > 0 then 2006
+       						  when position ('2005' in yearofproduction) > 0 then 2005
+       						  when position ('2004' in yearofproduction) > 0 then 2004
+       						  when position ('2003' in yearofproduction) > 0 then 2003
+       						  when position ('2002' in yearofproduction) > 0 then 2002
+       						  when position ('2001' in yearofproduction) > 0 then 2001
+       						  when position ('2000' in yearofproduction) > 0 then 2000
+						  else 2015
+		     				  end
+			$$, products_table_name);
 
-create table catalog_pattern (
-       ProductId integer,
-       CompanyParticipantId integer,
-       Title varchar,
-       Description varchar,
-       ProgrammesProjectsIPs varchar,
-       ScreeningNumber smallint,
-       New boolean,
-       CompanyAtoZ char(1),
-       GenreMipJunior varchar,
-       Yearofproduction varchar,
-       ProgrammesProductionStatus varchar,
-       Format varchar,
-       Agegroup varchar,
-       Numberofepisodes varchar,
-       Salesrightscountries varchar,
-       Numberofseriesseasons varchar,
-       Licencingtarget varchar,
-       ProgrammeCreditsauthors varchar,
-       ProgrammeCreditsdirector varchar,
-       ProgrammeCreditsproducer varchar,
-       ProgrammeCreditsmainbroadcaster varchar,
-       ProjectCreditscoproductionpartners varchar,
-       ProjectCreditsadditionalpartners varchar,
-       ProjectCreditsproductionbudget varchar,
-       ProjectCreditsfinancestillrequired varchar,
-       ProjectCreditsproductioncompletiondate varchar,
-       SalesrightsPlatform varchar,
-       Languagesavailable varchar,
-       YearofProductionStartDate smallint,
-       YearofProductionEndDate smallint,
-       Format1lengthinminutes smallint,
-       Format2lengthinminutes smallint,
-       Format1numberofepisodes smallint,
-       Format2numberofepisodes smallint,
-       Numberofcopies smallint,
-       Numberofviewsdownloaded smallint,
-       Licensingaudiencetype varchar,
-       dummy char(1));
+	execute format ('drop table if exists %s', languages_table_name);
+	execute format ($$create table %s as (
+		       		 select screeningnumber as k,
+				 	regexp_split_to_table (languagesavailable, E' \\| ') as v
+				 from %s)$$, languages_table_name, products_table_name);
+end
+$fun$ language plpgsql;
 
--- 2013
-
-drop table if exists catalog_2013;
-create table catalog_2013 as table catalog_pattern with no data;
-\copy catalog_2013 from '/home/thierry/MIP/sql/products.2013.csv' with CSV delimiter ',' quote '"' HEADER;
-alter table catalog_2013 add column normtitle varchar;
-update catalog_2013 set normtitle=normstr(title);
-
-drop table if exists products_2013;
-create table products_2013 as (select P.* from catalog_2013 as P, (SELECT MAX (productid) as i from catalog_2013 group by normtitle) as Q where productid = i);
-
-alter table products_2013
-      add column languages_arr varchar[],
-      add column formats_arr varchar[],
-      add column platforms_arr varchar[];
-      
-update products_2013 set
-       languages_arr	= regexp_split_to_array (languagesavailable, E' \\| '),
-       platforms_arr   	= regexp_split_to_array (SalesrightsPlatform, E' \\| '),
-       formats_arr	= regexp_split_to_array (format, E' \\| ');
- 
-drop table if exists languages_2013;
-create table languages_2013 as (select productid as k,  regexp_split_to_table (languagesavailable, E' \\| ') as v from products_2013);
-
-
---2014
-
-drop table if exists catalog_2014;
-create table catalog_2014 as table catalog_pattern with no data;
-\copy catalog_2014 from '/home/thierry/MIP/sql/products.2014.csv' with CSV delimiter ',' quote '"' HEADER;
-alter table catalog_2014 add column normtitle varchar;
-update catalog_2014 set normtitle=normstr(title);
-
-drop table if exists products_2014;
-create table products_2014 as (select P.* from catalog_2014 as P, (SELECT MAX (productid) as i from catalog_2014 group by normtitle) as Q where productid = i);
-
-alter table products_2014
-      add column languages_arr varchar[],
-      add column formats_arr varchar[],
-      add column platforms_arr varchar[];
-      
-update products_2014 set
-       languages_arr	= regexp_split_to_array (languagesavailable, E' \\| '),
-       platforms_arr   	= regexp_split_to_array (SalesrightsPlatform, E' \\| '),
-       formats_arr	= regexp_split_to_array (format, E' \\| ');
- 
-drop table if exists languages_2014;
-create table languages_2014 as (select productid as k,  regexp_split_to_table (languagesavailable, E' \\| ') as v from products_2014);
-
+/*
 drop table if exists sim_title_2013_2014;
 create table sim_title_2013_2014 as select k1, k2, str_similarity(k1,k2) as v from (select A.normtitle as k1, B.normtitle as k2 from products_2013 as A, products_2014 as B) as A;
 
@@ -103,3 +74,5 @@ create table sim_languages_2013_2014 as select k1, k2, array_jaccard(f1,f2) as v
 drop table if exists sim_platforms_2013_2014;
 create table sim_platforms_2013_2014 as select k1, k2, array_jaccard(f1,f2) as v
        from (select A.normtitle as k1, A.platforms_arr as f1, B.normtitle as k2, B.platforms_arr as f2 from products_2013 as A, products_2014 as B) as A;
+*/
+

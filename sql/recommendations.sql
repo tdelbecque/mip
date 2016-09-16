@@ -24,12 +24,14 @@ begin
 	              B.ka,		-- entry product
 	      	      B.kb,	   	-- possible reco
 	      	      B.n,	   	-- coscreen of the 2 products
-	      	      A.fitness,	-- of buyer with kb
+	      	      A.fitness,	-- of buyer with kb,
+		      C.freshyearprod,		
 	      	      random () as tiebreaker
        		from panel_fitness A,
 		     -- buyers_products_fitness A,
-       	    	     coscreenag_2015 B
-		where screeningnumber = kb and ka != kb);
+       	    	     coscreenag_2015 B,
+		     products_2015 C
+		where A.screeningnumber = kb and C.screeningnumber = kb and ka != kb);
 	analyse fullreco_2015;
 	create index i_fullreco_2015 on fullreco_2015(buyerid, ka);
 end
@@ -133,6 +135,9 @@ select create_fullrecoranked_2015 ('reco_n_fitness', 'n desc, fitness desc');
 \copy (select * from reco4reelport('reco_n_fitness', 100)) to 'panelreco_list1.csv';
 select create_fullrecoranked_2015 ('reco_fitness_n', 'fitness desc, n desc');
 \copy (select * from reco4reelport('reco_fitness_n', 100)) to 'panelreco_list2.csv';
+
+select create_fullrecoranked_2015 ('reco_n_fresh_fitness', 'n desc, freshyearprod desc, fitness desc');
+\copy (select * from reco4reelport('reco_n_fresh_fitness', 100)) to 'panelreco_list3.csv';
 
 select create_fullreco_nocontext_2015 ();
 select create_fullrecoranked_nocontext_2015 ();
