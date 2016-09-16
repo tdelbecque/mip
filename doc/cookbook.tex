@@ -1,0 +1,411 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+\usepackage{lettrine}
+\usepackage{tikz}
+\usetikzlibrary{shapes}
+\usepackage{oldgerm}
+\usepackage{hyperref}
+
+\usepackage{geometry}
+\geometry{margin=1cm}
+
+\usetikzlibrary{arrows}
+
+\newtheorem{definition}{Définition}
+\newtheorem{foo}{}
+
+\hypersetup{
+    bookmarks=true,         % show bookmarks bar?
+    pdftoolbar=true,        % show Acrobat’s toolbar?
+    pdfmenubar=true,        % show Acrobat’s menu?
+    pdfnewwindow=true      % links in new PDF window
+}
+
+\title {MIP recommandations Cookbook}
+
+\begin{document}
+
+\maketitle
+
+\section{Que faire quand on dispose du catalogue}
+
+\begin{enumerate}
+\item Importer les produits;
+\item Calculer les similarités entre produits
+\item Calculer les similarités entre produits et segments
+\item Calculer la liste ordonnée des produits par segment
+\end{enumerate}
+
+\subsection{Importer les produits}
+A la reception du catalogue, on l'importe dans la base mip.
+Si le catalogue est dans le fichier \emph{products.2016.csv}:
+
+\begin{verbatim}
+drop table if exists catalog_2016;
+create table catalog_2016 (like catalog_pattern);
+\copy catalog_2016 from '/home/thierry/MIP/sql/products.2016.csv' 
+with CSV delimiter ',' quote '"' HEADER;
+select create_products('catalog_2016', 'products_2016');
+\end{verbatim}
+
+A ce point les produits sont dans la table products\_2016. On calcul le fichier global des produits par concaténation avec les produits des années précédentes:
+
+\begin{verbatim}
+drop table if exists products_total;
+create table products_total as (select * from products_2013 union select * from products_2014 union select * from products_2015 union select * from products_2016);
+\end{verbatim}
+
+\subsection{Calculer les similarités entre produits}
+\begin{verbatim}
+select create_products_profiles ('products_2016', 'products_profiles_2016');
+select create_products_similarities_from_profiles 
+('products_profiles_2016', 'products_cosim_0_2016');
+\end{verbatim}
+
+
+\subsection{Calculer les similarités entre produits et segments}
+\begin{verbatim}
+select create_buyers_or_segments_products_similarities (
+'segments_profiles', 
+'products_profiles_2016', 
+'segments_products_similarities_2016');
+\end{verbatim}
+
+\subsection{calculer les listes par segment}
+\subsubsection{Calculer les listes pour le segment 0}
+\begin{verbatim}
+-- PT0
+-- segment 0
+-- create the rank value
+drop table if exists seg0reco2;
+create table seg0reco2 as
+(select *, rank () over (partition by ka order by co_usage desc, co_sim desc, tiebreaker) as rnk
+from (select *, random () as tiebreaker from products_cosim_2016 where ka != kb) A);
+
+-- gather values  in vectors
+drop table if exists seg0reco3;
+create table seg0reco3 as
+(select 0 as segid, ka, array_agg(kb order by rnk)::integer[] as kbs from seg0reco2 group by ka);
+\end{verbatim}
+
+\subsubsection{Calculer la liste ordonée des produits par segment}
+\begin{verbatim}
+-- join co-sim and similarities table
+drop table if exists reco1;
+create table reco1
+as (select segid, ka, A.kb,  co_usage, co_sim, sim, random()
+as tiebreaker from products_cosim_2016 A , segments_products_similarities_2016 B 
+where A.kb = B.kb and A.ka != A.kb);
+
+-- order recom by rankers
+drop table if exists reco2;
+create table reco2 as (
+select *, rank() over (partition by segid, ka order by co_usage desc, co_sim desc, sim desc, 
+tiebreaker) as rnk from reco1);
+
+-- gathers recommendations in a vector
+drop table if exists reco3;
+create table reco3 as 
+(select segid, ka, array_agg(kb order by rnk)::integer[] as kbs from reco2 group by segid, ka);
+
+--on peut concatener les tables reco3 et seg0reco3 pour avoir les recommandations du segment 0 sous la main facilement:
+
+create table reco4 as (select * from seg0reco3 union select * from reco3);
+alter table reco4 add primary key (segid, ka);
+
+
+\end{verbatim}
+
+Voir \emph{co-usage-proxy.sql} pour calculer un cousage basé par le cousage d'une année précédente.
+
+\subsubsection{reco1 format}
+\begin{tabular}{ll}
+segid      & integer          \\
+ ka         & integer         \\ 
+ kb         & integer         \\ 
+ co\_usage   & real           \\ 
+ co\_sim     & real           \\ 
+ sim        & real            \\ 
+ tiebreaker & double precision 
+\end{tabular}
+
+\subsubsection{reco2 format}
+\begin{tabular}{ll}
+segid      & integer          \\
+ ka         & integer         \\ 
+ kb         & integer         \\ 
+ co\_usage   & real           \\ 
+ co\_sim     & real           \\ 
+ sim        & real            \\ 
+ tiebreaker & double precision \\
+ rnk        & bigint
+\end{tabular}
+
+\subsubsection{reco3 format}
+\begin{tabular}{lll}
+ segid  & integer   & not null \\
+ ka     & integer   & not null \\
+ kbs    & integer[] & 
+\end{tabular}
+
+Indexes:
+    "reco3\_pkey" PRIMARY KEY, btree (segid, ka)
+
+
+\section{Prise en compte des buyers}
+
+\begin{enumerate}
+\item Importer le fichier;
+\item constituer le fichier total des buyers par concaténation avec l'historique
+\item calculer les profils des buyers;
+\item calculer la table des segments
+\end{enumerate}
+
+Le calcul du profil des buyers prend en compte l'integralité du fichier reelport, pas seulement les produits
+pour lesquels il y a eut un screening.
+
+\begin{verbatim}
+-- Import
+drop table if exists reelport_2016;
+create table reelport_2016 (like reelport_pattern);
+\copy reelport_2016 from '/home/thierry/MIP/data/extract-2016.csv' with CSV delimiter E'\t' quote '"' HEADER;
+drop table if exists reelport_all;
+
+create table reelport_all as (select A.* from (select * from reelport_2013 union select * from reelport_2014 union select * from reelport_2015) A, (select distinct buyerid from reelport_2016) B where A.buyerid = B.buyerid);
+
+select create_activities ('reelport_2016', 'activities_2016');
+
+select create_buyers_profiles ('reelport_2016', 'products_total', 'buyers_profiles_2016');
+alter table buyers_profiles_2016 add primary key (buyerid);
+
+\end{verbatim}
+
+Le segmentation et le calcul de la table buyers => segments et fait en R:
+\begin{verbatim}
+  createClusterTable <- function (con
+  , learnTable         # profils pour apprendre les clusters
+  , predictTable       # profils à segmenter
+  , newSegmentTable,   # table de mapping buyer => segment
+  k=20)
+\end{verbatim}
+
+\begin{verbatim}
+select create_cousage ('activities_2016', 'products_cousage_2016');
+select merge_products_cosim_cousage ('products_cosim_0_2016', 'products_cousage_2016', 
+'products_cosim_2016');
+-- ici on reprend le calcul PT0
+-- ...
+-- jointure avec les buyers:
+drop index if exists reco5_idx;
+drop table if exists reco5;
+create table reco5 as (select buyerid, A.ka, kbs from reco4 A, buyers_segments B 
+where A.segid = B.segid);
+create index reco5_idx on reco5 (buyerid);
+-- on supprime des recommendations les items préalablement touchés
+drop table if exists toucheditems;
+create table toucheditems as (select substring(buyerid, 3)::integer as buyerid, 
+array_agg (screeningid)::integer[] as touched from activities_2016 group by buyerid);
+alter table toucheditems add primary key (buyerid);
+--- 
+create table reco6 as (select A.buyerid, 
+case when touched is null then kbs else my_array_diff (kbs, touched) end as kbs 
+from reco5 A left outer join  toucheditems B on (A.buyerid = B.buyerid));
+
+\end{verbatim}
+
+TODO : quid des buyers non segmentés ? s'assurer que tout le monde à des reco
+
+\section{Tables}
+ \subsection{Table des profils des produits}
+
+\begin{tabular}{lll}
+ screeningnumber    & smallint & not null \\
+ agegroup\_preschool & integer & \\
+ agegroup\_toddler   & integer & \\
+ agegroup\_kids      & integer & \\
+ agegroup\_tnt       & integer & \\
+ agegroup\_family    & integer & \\
+ genre\_animation    & integer & \\
+ genre\_liveaction   & integer & \\
+ genre\_education    & integer & \\
+ genre\_featurefilm  & integer & \\
+ genre\_art          & integer & \\
+ genre\_game         & integer & \\
+ genre\_shorts       & integer & \\
+ genre\_other        & integer & \\
+ boys              & integer  & \\
+ girls             & integer  & 
+\end{tabular}
+
+Indexes:
+    "products\_profiles\_2015\_pkey" PRIMARY KEY, btree (screeningnumber)
+
+\subsection{Table des products}
+\begin{tabular}{lll}
+productid                              & integer           & \\ 
+ companyparticipantid                   & integer           & \\ 
+ title                                  & character varying & \\ 
+ description                            & character varying & \\ 
+ programmesprojectsips                  & character varying & \\ 
+ screeningnumber                        & smallint          & not null \\
+ new                                    & boolean           & \\ 
+ companyatoz                            & character(1)      & \\ 
+ genremipjunior                         & character varying & \\ 
+ yearofproduction                       & character varying & \\ 
+ programmesproductionstatus             & character varying & \\ 
+ format                                 & character varying & \\ 
+ agegroup                               & character varying & \\ 
+ numberofepisodes                       & character varying & \\ 
+ salesrightscountries                   & character varying & \\ 
+ numberofseriesseasons                  & character varying & \\ 
+ licencingtarget                        & character varying & \\ 
+ programmecreditsauthors                & character varying & \\ 
+ programmecreditsdirector               & character varying & \\ 
+ programmecreditsproducer               & character varying & \\ 
+ programmecreditsmainbroadcaster        & character varying & \\ 
+ projectcreditscoproductionpartners     & character varying & \\ 
+ projectcreditsadditionalpartners       & character varying & \\ 
+ projectcreditsproductionbudget         & character varying & \\ 
+ projectcreditsfinancestillrequired     & character varying & \\ 
+ projectcreditsproductioncompletiondate & character varying & \\ 
+ salesrightsplatform                    & character varying & \\ 
+ languagesavailable                     & character varying & \\ 
+ yearofproductionstartdate              & smallint          & \\ 
+ yearofproductionenddate                & smallint          & \\ 
+ format1lengthinminutes                 & smallint          & \\ 
+ format2lengthinminutes                 & smallint          & \\ 
+ format1numberofepisodes                & smallint          & \\ 
+ format2numberofepisodes                & smallint          & \\ 
+ numberofcopies                         & smallint          & \\ 
+ numberofviewsdownloaded                & smallint          & \\ 
+ licensingaudiencetype                  & character varying & \\ 
+ dummy                                  & character(1)      & \\ 
+ languages\_arr                          & text[]            & \\ 
+ formats\_arr                            & text[]            & \\ 
+ platforms\_arr                          & text[]            & \\ 
+ freshyearprod                          & smallint          &
+\end{tabular}
+
+Indexes:
+    "products\_2015\_pkey" PRIMARY KEY, btree (screeningnumber)
+
+\subsection{Table des profils de segments}
+\begin{tabular}{ll}
+segid                & integer          \\ 
+ weight               & double precision \\ 
+ agegroup\_preschool   & numeric          \\ 
+ agegroup\_toddler     & numeric          \\ 
+ agegroup\_kids        & numeric          \\ 
+ agegroup\_tnt         & numeric          \\ 
+ agegroup\_family      & numeric          \\ 
+ genre\_animation      & numeric          \\ 
+ genre\_liveaction     & numeric          \\ 
+ genre\_education      & numeric          \\ 
+ genre\_featurefilm    & numeric          \\ 
+ genre\_art            & numeric          \\ 
+ genre\_game           & numeric          \\ 
+ genre\_shorts         & numeric          \\ 
+ genre\_other          & numeric          \\ 
+ boys                 & numeric          \\ 
+ girls                & numeric          \\ 
+ p\_agegroup\_preschool & double precision \\ 
+ p\_agegroup\_toddler   & double precision \\ 
+ p\_agegroup\_kids      & double precision \\ 
+ p\_agegroup\_tnt       & double precision \\ 
+ p\_agegroup\_family    & double precision \\ 
+ p\_genre\_animation    & double precision \\ 
+ p\_genre\_liveaction   & double precision \\ 
+ p\_genre\_education    & double precision \\ 
+ p\_genre\_featurefilm  & double precision \\ 
+ p\_genre\_art          & double precision \\ 
+ p\_genre\_game         & double precision \\ 
+ p\_genre\_shorts       & double precision \\ 
+ p\_genre\_other        & double precision \\ 
+ p\_boys               & double precision \\ 
+ p\_girls              & double precision 
+\end{tabular}
+
+\subsection{Table des profils de segments}
+
+\begin{tabular}{lll}
+buyerid              & integer  & not null \\
+ weight               & real    & \\ 
+ agegroup\_preschool   & smallint & \\ 
+ agegroup\_toddler     & smallint & \\ 
+ agegroup\_kids        & smallint & \\ 
+ agegroup\_tnt         & smallint & \\ 
+ agegroup\_family      & smallint & \\ 
+ genre\_animation      & smallint & \\ 
+ genre\_liveaction     & smallint & \\ 
+ genre\_education      & smallint & \\ 
+ genre\_featurefilm    & smallint & \\ 
+ genre\_art            & smallint & \\ 
+ genre\_game           & smallint & \\ 
+ genre\_shorts         & smallint & \\ 
+ genre\_other          & smallint & \\ 
+ boys                 & smallint & \\ 
+ girls                & smallint & \\ 
+ p\_agegroup\_preschool & real     & \\ 
+ p\_agegroup\_toddler   & real     & \\ 
+ p\_agegroup\_kids      & real     & \\ 
+ p\_agegroup\_tnt       & real     & \\ 
+ p\_agegroup\_family    & real     & \\ 
+ p\_genre\_animation    & real     & \\ 
+ p\_genre\_liveaction   & real     & \\ 
+ p\_genre\_education    & real     & \\ 
+ p\_genre\_featurefilm  & real     & \\ 
+ p\_genre\_art          & real     & \\ 
+ p\_genre\_game         & real     & \\ 
+ p\_genre\_shorts       & real     & \\ 
+ p\_genre\_other        & real     & \\ 
+ p\_boys               & real     & \\ 
+ p\_girls              & real     & 
+\end{tabular}
+
+Indexes:
+    "buyers\_profiles\_2013\_2015\_pkey" PRIMARY KEY, btree (buyerid)
+
+\subsection{Table des similarités entre produits}
+
+\begin{tabular}{lll}
+ ka                    & integer & not null \\
+ kb                    & integer & not null \\
+ co\_agegroup\_preschool & integer & \\
+ co\_agegroup\_toddler   & integer & \\
+ co\_agegroup\_kids      & integer & \\
+ co\_agegroup\_tnt       & integer & \\
+ co\_agegroup\_family    & integer & \\
+ co\_genre\_animation    & integer & \\
+ co\_genre\_liveaction   & integer & \\
+ co\_genre\_education    & integer & \\
+ co\_genre\_featurefilm  & integer & \\
+ co\_genre\_art          & integer & \\
+ co\_genre\_game         & integer & \\
+ co\_genre\_shorts       & integer & \\
+ co\_genre\_other        & integer & \\
+ co\_boys               & integer & \\
+ co\_girls              & integer & \\
+ co\_sim                & real    & \\
+ co\_play               & integer & \\
+ co\_screen             & integer & \\
+ co\_usage              & real    &
+\end{tabular}
+
+Indexes:
+    "products\_cosim\_2015\_pkey" PRIMARY KEY, btree (ka, kb)
+
+\section{Remarques}
+
+On peut retrouver les buyersid dans le fichier 'participating' ainsi:
+
+\begin{verbatim}
+update participants_2015 set norm_personid = regexp_replace (x103381_eticketurl_en, '.+Contact=(\d+)', E'\\1')::integer;
+\end{verbatim}
+
+la selection des buyers se fait en filtrant sur le champs: x102791\_role.
+
+De la on peut connaître le pays du buyer, si necessaire.
+
+\end{document}
