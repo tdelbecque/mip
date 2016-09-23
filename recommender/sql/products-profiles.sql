@@ -45,13 +45,13 @@ declare
 	       ------------------------------------------------------------------------
 	       (GenreMipJunior is not null and GenreMipJunior = 'Animation')::integer,
 	       (GenreMipJunior is not null and GenreMipJunior = 'Live action')::integer,
-	       (GenreMipJunior is not null and GenreMipJunior IN ('Discovery & Education', 'Education', 'Documentary / Magazine'))::integer,
+	       (GenreMipJunior is not null and GenreMipJunior IN ('Discovery / Education / Doc', 'Discovery & Education', 'Education', 'Documentary / Magazine'))::integer,
 	       (GenreMipJunior is not null and GenreMipJunior = 'Feature film')::integer,
 	       (GenreMipJunior is not null and GenreMipJunior = 'Art / Music / Culture')::integer,
 	       (GenreMipJunior is not null and GenreMipJunior = 'Game show')::integer,
 	       (GenreMipJunior is not null and GenreMipJunior = 'Shorts')::integer,
 	       (GenreMipJunior is not null and GenreMipJunior NOT IN ('Animation', 'Live action',
-	       		       	       'Discovery & Education', 'Education', 'Documentary / Magazine',
+	       		       	       'Discovery & Education', 'Education', 'Documentary / Magazine', 'Discovery / Education / Doc',
 				       'Feature film', 'Art / Music / Culture', 'Game show', 'Shorts'))::integer,
 	       ------------------------------------------------------------------------
 	       (Licensingaudiencetype is null or Licensingaudiencetype != 'Girls')::integer,
