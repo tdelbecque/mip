@@ -2,7 +2,7 @@
 --	buyers profiles
 --
 
-create or replace function init_buyers_profiles () returns void as $init_buyers_profile$
+create or replace function init_buyers_profiles () returns void as $init_buyers_profiles$
        drop table if exists buyers_profiles_elem_pattern;
        create table buyers_profiles_elem_pattern (
               buyerid				  integer,
