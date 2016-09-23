@@ -68,3 +68,43 @@ createClusterTable <- function (con, learnTable, predictTable, newSegmentTable, 
                             sep = ''))
 
 }
+
+doSegmentWithCountries <- function (){
+    set.seed(1)
+    classifyingAttributes <- 29:54
+    dataTable <- 'buyers_profiles_withcountry_2013_2015'
+    modelFileName <- 'segments_withcountry_20.RData'
+    segmentsTable <- 'segments_withcountries_2013_2015'
+    segmentsProfilesTable <- 'segments_profiles_withcountry'
+    
+    data <- fetchData (con, dataTable)
+    segments_withcountry_20 <- cclust (x=data [,classifyingAttributes], k=20)
+    save (segments_withcountry_20, file=modelFileName)
+    p <- predict (segments_withcountry_20, newdata=data [,classifyingAttributes])
+    dbSendQuery (con,
+                 paste ("drop table if exists ", segmentsTable));
+    dbSendQuery (con,
+                 paste ("create table ",
+                        segmentsTable,
+                        " (like buyers_segments_pattern)",
+                        sep = ''))
+    for (i in 1:nrow (data))
+        dbSendQuery (con,
+                     paste ("insert into ",
+                            segmentsTable,
+                            " values(",
+                            data$buyerid [i],
+                            ",",
+                            p [i],
+                            ")",
+                            sep = ''))
+    dbSendQuery (con,
+                 paste ("select create_segments_profiles_with_country ('",
+                        segmentsTable,
+                        "','",
+                        dataTable,
+                        "','",
+                        segmentsProfilesTable,
+                        "')",
+                        sep=''))
+}
