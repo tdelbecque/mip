@@ -183,6 +183,7 @@ declare
 	$tmpl3$;
 begin
 	drop table if exists buyers_profiles_tmp;
+	execute format ('drop table if exists %s', profiles_table_out);
 	execute format (tmpl1, reelport_table_in, products_table_in);
 	execute format (tmpl2, profiles_table_out);
 	execute format (tmpl3, profiles_table_out);
