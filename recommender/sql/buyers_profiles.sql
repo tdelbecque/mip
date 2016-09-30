@@ -157,6 +157,7 @@ declare
 	$tmpl4$;
 begin
 	drop table if exists buyers_profiles_tmp;
+	execute format ('drop table if exists %s',  profiles_table_out);
 	execute format (tmpl1, reelport_table_in, products_table_in);	-- profiles elements in tmp table
 	execute format (tmpl2, profiles_table_out);	  		-- may create output table 
 	execute format (tmpl3, profiles_table_out);			-- aggregate raw frequancies
