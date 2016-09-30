@@ -108,3 +108,33 @@ doSegmentWithCountries <- function (){
                         "')",
                         sep=''))
 }
+
+mapBuyersSegments2016 <- function () {
+    classifyingAttributes <- 29:54
+    segmentsTable <- 'segments_withcountries_2013_2016'
+    modelFileName <- 'segments_withcountry_20.RData'
+    dataTable <- 'buyers_profiles_withcountry_2013_2016'
+    
+    load (modelFileName)
+    con <- getConnection ('test')
+    data <- fetchData (con, dataTable)
+    p <- predict (segments_withcountry_20, newdata=data [,classifyingAttributes])
+    dbSendQuery (con,
+                 paste ("drop table if exists ", segmentsTable));
+    dbSendQuery (con,
+                 paste ("create table ",
+                        segmentsTable,
+                        " (like buyers_segments_pattern)",
+                        sep = ''))
+    for (i in 1:nrow (data))
+        dbSendQuery (con,
+                     paste ("insert into ",
+                            segmentsTable,
+                            " values(",
+                            data$buyerid [i],
+                            ",",
+                            p [i],
+                            ")",
+                            sep = ''))
+    closeConnection (con)
+}
