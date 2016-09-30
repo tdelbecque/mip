@@ -1,0 +1,91 @@
+Tables from legacy (in prolog):
+
+       * products_profiles_withcountry_2013_2015;
+       * buyers_profiles_withcountry_2013_2015;
+
+       * companiesAdmin_201[3|4|5] (companies_admin.sql)
+
+       SEGMENT PROFILES
+       	       This is computed in R with doSegmentWithCountries fun,
+	       that itself call create_segments_profiles_with_country
+	       from postgres.
+       * segments_profiles
+       * segments_profiles_withcountry;
+       
+Fresh catalog & NOVA report from Romain:
+
+      * participants_2016
+		buyerid = norm_personid
+
+      * companiesAdmin_2016 (companies_admin.sql)
+
+      RAW PRODUCTS (with freshness, platform, etc)
+      * products_2016;
+      * products_2013_2016:
+      * products_withcountry_2016;
+      * products_withcountry_2013_2016;
+
+      PRODUCTS PROFILES
+      * products_profiles_2016;
+      * products_profiles_2013_2016;
+      * products_profiles_withcountry_2016;
+      * products_profiles_withcountry_2013_2016;
+
+      PRODUCTS SIMILARITY
+      * products_cosim_0_2016
+      * products_cosim_0_withcountry_2016
+
+      PRODUCT * SEGMENT SIMILARITY
+      * segments_products_similarities_2016
+      * segments_products_similarities_withcountry_2016
+
+      SAFETY NET LIST : /home/thierry/MIP/recommender/toreel/safenet_0930.csv
+
+
+
+New data from Maria: when_reelport_07.sql & when_reelport_14.sql & when_reelport_15.sql
+
+    * reelport_2016_[07|14|15]
+    * reelport_2016;
+    * activities_2016;
+    * toucheditems;
+
+    MAJ COUSAGE
+    * cousage_2016;
+    * products_cosim_2016
+    * products_cosim_withcountry_2016
+
+    MAJ BUYERS PROFILES
+    * buyers_profiles_2016
+    * buyers_profiles_withcountry_2016
+    * buyers_profiles_withcountry_2013_2016
+    * segments_withcountries_2013_2016 (from a call to R)
+    * buyer_segments_map_2016
+	segments of 2016 buyers, including seg 0
+
+    CREATES RECO FOR SEG 0
+    * seg0reco2_withcountry
+	creates the rank variable from the similarities matrix
+    * seg0reco3_withcountry
+	add segid = 0, and gather kb in an array (kbs)
+
+    OTHER SEGMENTS
+    * reco1_withcountry
+	join segment similarities with the cousage matrix.
+	This is where we coud add other attributes such as the freshness
+    * reco2_withcountry
+	create the rank variable. This is where we set the ranking hierarchy
+    * reco3_withcountry
+	kb are aggregated in an array
+    * reco4_withcountry
+	merge with SEG 0 reco (with seg0reco3_withcountry)
+
+    BUYERS RECOMMENDATIONS
+    * reco_prop2
+	une liste for each buyer according to his segment
+    * reco_prop2_clean
+	remove touched items
+    * reco_list_pro2
+        lists ready to be sent to reelport
+
+    At this point, we have /home/thierry/MIP/recommender/toreel/safenet_10[07|14|15].csv files
