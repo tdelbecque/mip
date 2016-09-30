@@ -10,7 +10,7 @@ declare
 	create table %s as (
 	       select buyerid,
 	       	      screeningid,
-		      playlisted,
+		      playlisted::boolean::integer,
 	       	      time2sec (totalscreeningtime) as screensec
 	       from %s)
 	$tmpl1$;
@@ -54,3 +54,41 @@ create or replace function init_reelport () returns void as $init_reelport$
 	      Sellercontactemail	varchar,
 	      Sellercontactphone	varchar)
 $init_reelport$ language sql;
+
+create or replace function init_reelport_2016 () returns void as $init_reelport_2016$
+       drop table if exists reelport_pattern_2016;
+       create table reelport_pattern_2016 (
+       	      BuyerCompany	varchar,
+      	      BuyerCompanyCountry	varchar,
+	      BuyerCompanyID	varchar,
+	      BuyerCompanyPhone	varchar,
+	      BuyerSalutation	varchar,
+	      BuyerFirstname	varchar,
+	      BuyerLastname	varchar,
+	      BuyerID	varchar,
+	      Email	varchar,
+	      Genre	varchar,
+	      Type	varchar,
+	      Companyname	varchar,
+	      Companycountry	varchar,
+	      SellerCompanyID	varchar,
+	      ScreeningId integer,
+	      PicturePipeId integer,
+	      Title	varchar,
+	      Timesviewed	varchar,
+	      Timesscreened	varchar,
+	      Totalscreeningtime	varchar,
+	      Synopsis	varchar,
+	      Privatenotes	varchar,
+	      Playlisted	varchar,
+	      Shortlisted	varchar,
+	      Informationforseller	varchar,
+	      Sellercontactsalutation	varchar,
+	      Sellercontactfirstname	varchar,
+	      Sellercontactsurname	varchar,
+	      SellerID	varchar,
+	      Sellercontactemail	varchar,
+	      Sellercontactphone	varchar,
+	      RecommendedVia varchar,
+	      FirstActionAt   varchar)
+$init_reelport_2016$ language sql;
