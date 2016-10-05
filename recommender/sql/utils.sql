@@ -1,4 +1,8 @@
-
+--
+-- do not forget to create extension as superuser;
+-- create extension fuzzystrmatch;
+-- create extension plperl;
+--
 create or replace function init () returns void as $init$
        select init_catalog ();
        select init_buyers_profiles ();
