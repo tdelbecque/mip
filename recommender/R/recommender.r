@@ -98,7 +98,7 @@ doSegmentWithCountries <- function (){
                             p [i],
                             ")",
                             sep = ''))
-    dbSendQuery (con,
+    rs <- dbSendQuery (con,
                  paste ("select create_segments_profiles_with_country ('",
                         segmentsTable,
                         "','",
@@ -107,6 +107,7 @@ doSegmentWithCountries <- function (){
                         segmentsProfilesTable,
                         "')",
                         sep=''))
+    dbClearResult(rs)
 }
 
 mapBuyersSegments2016 <- function () {
@@ -116,7 +117,7 @@ mapBuyersSegments2016 <- function () {
     dataTable <- 'buyers_profiles_withcountry_2013_2016'
     
     load (modelFileName)
-    con <- getConnection ('test')
+#    con <- getConnection ('test')
     data <- fetchData (con, dataTable)
     p <- predict (segments_withcountry_20, newdata=data [,classifyingAttributes])
     dbSendQuery (con,
