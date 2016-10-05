@@ -1,7 +1,7 @@
 create or replace function init_buyers_profiles_withcountry ()
 returns void as $init_buyers_profiles_withcountry$
-       drop table if exists buyers_profiles_elem_pattern;
-       create table buyers_profiles_elem_pattern (
+       drop table if exists buyers_profiles_withcountry_elem_pattern;
+       create table buyers_profiles_withcountry_elem_pattern (
               buyerid				  integer,
 	      weight				  real,
 	      --
