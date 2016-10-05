@@ -1,9 +1,17 @@
+/**/
 --
 -- historical data
 --
+
+-- companies
+\i companies_admin.sql
+
 -- on ajoute aux produits le pays de la boîte qui les a faits.
+drop table if exists products_withcountry_2013;
 select products_addcountry ('products_2013', 'companiesadmin_2013', 'products_withcountry_2013');
+drop table if exists products_withcountry_2014;
 select products_addcountry ('products_2014', 'companiesadmin_2014', 'products_withcountry_2014');
+drop table if exists products_withcountry_2015;
 select products_addcountry ('products_2015', 'companiesadmin_2015', 'products_withcountry_2015');
 
 select create_products_profiles_withcountry ('products_withcountry_2013', 'products_profiles_withcountry_2013');
@@ -30,16 +38,13 @@ select create_buyers_profiles_withcountry ('reelport_2013_2015', 'products_profi
 --
 drop table if exists participants_2016;
 create table participants_2016 as table participants with no data;
+alter table participants_2016 drop column dummy;
 --\copy participants_2016 from '/home/thierry/MIP/data/2016/Participating_Individual_Extract_Report_MIPJunior_2016_160914134114.csv' with CSV delimiter ',' quote '"' HEADER;
 \copy participants_2016 from '/home/thierry/MIP/data/2016/Participating_Individual_Extract_Report_MIPJunior_2016_16092873454.csv'  with CSV delimiter ',' quote '"' HEADER;
 alter table participants_2016 add column norm_personid integer;
 update participants_2016 set norm_personid = regexp_replace (x103381_eticketurl_en, '.+Contact=(\d+)', E'\\1')::integer;
 drop table if exists buyerid_2016;
 create table buyerid_2016 as (select distinct norm_personid as buyerid from participants_2016 where norm_personid is not null and x102791_role like 'buyer%');
-
--- companies
-\i companies_admin.sql
-
 
 --- PROGRAMS (CATALOG FROM ROMAIN)
 drop table if exists catalog_2016;
@@ -84,25 +89,43 @@ create table products_profiles_withcountry_2013_2016 as (
 
 select create_products_similarities_from_profiles ('products_profiles_2016', 'products_cosim_0_2016');
 select create_products_similarities_from_profiles_withcountry ('products_profiles_withcountry_2016', 'products_cosim_0_withcountry_2016');
+/**/
 
 drop table if exists products_cosim_2016;
-create table products_cosim_2016 as table products_cosim_0_2016;
+create table products_cosim_2016 as (
+       select A.*, freshyearprod
+       from products_cosim_0_2016 A, products_2016 B
+       where A.kb = B.screeningnumber);
+--create table products_cosim_2016 as table products_cosim_0_2016;
 drop table if exists products_cosim_withcountry_2016;
-create table products_cosim_withcountry_2016 as table products_cosim_0_withcountry_2016;
-
+create table products_cosim_withcountry_2016 as (
+       select A.*, freshyearprod
+       from products_cosim_0_withcountry_2016 A, products_2016 B
+       where A.kb = B.screeningnumber);
+--create table products_cosim_withcountry_2016 as table products_cosim_0_withcountry_2016;
+\qecho '>>>>>>>>>>>> CREATE SEGMENTS PRODUCTS SIMILARITIES'
+-- segments_profiles has been computed in boot.sql
 select create_buyers_or_segments_products_similarities ('segments_profiles', 'products_profiles_2016', 'segments_products_similarities_2016');
 
+\qecho 'IN CASE OF FAILURE : doSegmentWithCountries () ==> segments_profiles_withcountry'
+\prompt '(enter)' 'xyz'
 select create_buy_or_seg_prod_sim_withcountry ('segments_profiles_withcountry', 'products_profiles_withcountry_2016', 'segments_products_similarities_withcountry_2016');
+drop index if exists segments_products_similarities_withcountry_2016_idx_kb;
+create index segments_products_similarities_withcountry_2016_idx_kb on segments_products_similarities_withcountry_2016(kb);
 
+/*
+--
+-- Create safety net
+--
 
 -- segment 0 : create rank variable
 drop table if exists seg0reco2;
 create table seg0reco2 as
-(select *, rank() over (partition by ka order by co_usage desc, co_sim desc, tiebreaker) as rnk from (select *, random() as tiebreaker from products_cosim_2016 where ka != kb) A);
+(select *, rank() over (partition by ka order by co_usage desc, co_sim desc, freshyearprod desc, tiebreaker) as rnk from (select *, random() as tiebreaker from products_cosim_2016 where ka != kb) A);
 
 drop table if exists seg0reco2_withcountry;
 create table seg0reco2_withcountry as
-(select *, rank() over (partition by ka order by co_usage desc, co_sim desc, tiebreaker) as rnk from (select *, random() as tiebreaker from products_cosim_withcountry_2016 where ka != kb) A);
+(select *, rank() over (partition by ka order by co_usage desc, co_sim desc, freshyearprod desc, tiebreaker) as rnk from (select *, random() as tiebreaker from products_cosim_withcountry_2016 where ka != kb) A);
 
 --
 -- seg0reco3 contains reco for unclassified users : aggregate in an array
@@ -121,22 +144,22 @@ create table seg0reco3_withcountry as
 -- join with segment similarity
 drop table if exists reco1;
 create table reco1
-as (select segid, ka, A.kb, co_usage, co_sim, sim, random () as tiebreaker from products_cosim_2016 A, segments_products_similarities_2016 B
+as (select segid, ka, A.kb, co_usage, co_sim, sim, freshyearprod,  random () as tiebreaker from products_cosim_2016 A, segments_products_similarities_2016 B
 where A.kb = B.kb and A.ka != A.kb);
 
 drop table if exists reco1_withcountry;
 create table reco1_withcountry
-as (select segid, ka, A.kb, co_usage, co_sim, sim, random () as tiebreaker from products_cosim_withcountry_2016 A, segments_products_similarities_withcountry_2016 B
+as (select segid, ka, A.kb, co_usage, co_sim, sim, freshyearprod, random () as tiebreaker from products_cosim_withcountry_2016 A, segments_products_similarities_withcountry_2016 B
 where A.kb = B.kb and A.ka != A.kb);
 
 -- create rank variable
 drop table if exists reco2;
 create table reco2 as
-(select *, rank() over (partition by segid, ka order by co_usage desc, co_sim desc, sim desc, tiebreaker) as rnk from reco1);
+(select *, rank() over (partition by segid, ka order by co_usage desc, co_sim desc, sim desc, freshyearprod desc, tiebreaker) as rnk from reco1);
 
 drop table if exists reco2_withcountry;
 create table reco2_withcountry as
-(select *, rank() over (partition by segid, ka order by co_usage desc, co_sim desc, sim desc, tiebreaker) as rnk from reco1_withcountry);
+(select *, rank() over (partition by segid, ka order by co_usage desc, co_sim desc, sim desc, freshyearprod desc, tiebreaker) as rnk from reco1_withcountry);
 
 -- aggregate in an array
 drop table if exists reco3;
@@ -169,5 +192,6 @@ drop table if exists reco_list_pro2;
 create table reco_list_pro2 as select reco4reelport ('reco_prop2', 100);
 \copy reco_list_pro2 to '/home/thierry/MIP/recommender/toreel/safenet_0930.csv'
 
+*/
 
-	
+\qecho '>>>>>>>>>> END OF PROLOG'
