@@ -66,6 +66,120 @@ returns void as $init_buyers_profiles_withcountry$
               
 $init_buyers_profiles_withcountry$ language sql;
 
+create or replace function merge_buyers_profiles_withcountry
+(
+	old_profiles_table_in	text,
+	update_profiles_table_in text,
+	new_profiles_table_out	 text
+)
+returns void as $merge_buyers_profiles_withcountry$
+declare
+	tmpl1	text :=
+	$tmpl1$
+	drop table if exists %I
+	$tmpl1$;
+
+	tmpl2	text :=
+	$tmpl2$
+	create table %I as (
+	select case when A.buyerid is not null then A.buyerid else B.buyerid end buyerid,
+	       case when A.weight is null then 0 else A.weight end + case when B.weight is null then 0 else B.weight end weight,
+	       case when A.weight is null then 0 else A.agegroup_preschool end + case when B.weight is null then 0 else B.agegroup_preschool end agegroup_preschool,
+	       case when A.weight is null then 0 else A.agegroup_toddler end + case when B.weight is null then 0 else B.agegroup_toddler end agegroup_toddler,
+	       case when A.weight is null then 0 else A.agegroup_kids end + case when B.weight is null then 0 else	B.agegroup_kids end agegroup_kids,
+	       case when A.weight is null then 0 else A.agegroup_tnt end + case when B.weight is null then 0 else B.agegroup_tnt end agegroup_tnt,
+	       case when A.weight is null then 0 else A.agegroup_family end + case when B.weight is null then 0 else B.agegroup_family end agegroup_family,
+	       --
+	       case when A.weight is null then 0 else A.genre_animation end + case when B.weight is null then 0 else B.genre_animation end genre_animation,
+	       case when A.weight is null then 0 else A.genre_liveaction end + case when B.weight is null then 0 else B.genre_liveaction end genre_liveaction,
+	       case when A.weight is null then 0 else A.genre_education end + case when B.weight is null then 0 else B.genre_education end genre_education,
+	       case when A.weight is null then 0 else A.genre_featurefilm end + case when B.weight is null then 0 else B.genre_featurefilm end genre_featurefilm,
+	       case when A.weight is null then 0 else A.genre_art end + case when B.weight is null then 0 else B.genre_art end genre_art,
+	       case when A.weight is null then 0 else A.genre_game end + case when B.weight is null then 0 else B.genre_game end genre_game,
+	       case when A.weight is null then 0 else A.genre_shorts end + case when B.weight is null then 0 else B.genre_shorts end genre_shorts,
+	       case when A.weight is null then 0 else A.genre_other end + case when B.weight is null then 0 else B.genre_other end genre_other,
+	       --
+	       case when A.weight is null then 0 else A.boys end + case when B.weight is null then 0 else B.boys end boys,
+	       case when A.weight is null then 0 else A.girls end + case when B.weight is null then 0 else	B.girls end girls,
+	       --
+	       case when A.weight is null then 0 else A.country_france end + case when B.weight is null then 0 else B.country_france end country_france,
+	       case when A.weight is null then 0 else A.country_uk end + case when B.weight is null then 0 else B.country_uk end country_uk,
+	       case when A.weight is null then 0 else A.country_canada end + case when B.weight is null then 0 else B.country_canada end country_canada,
+	       case when A.weight is null then 0 else A.country_germany end + case when B.weight is null then 0 else B.country_germany end country_germany,
+	       case when A.weight is null then 0 else A.country_us end + case when B.weight is null then 0 else B.country_us end country_us,
+	       case when A.weight is null then 0 else A.country_southkorea end + case when B.weight is null then 0 else B.country_southkorea end country_southkorea,
+	       case when A.weight is null then 0 else A.country_china end + case when B.weight is null then 0 else	B.country_china end country_china,
+	       case when A.weight is null then 0 else A.country_brazil end + case when B.weight is null then 0 else B.country_brazil end country_brazil,
+	       case when A.weight is null then 0 else A.country_italy end + case when B.weight is null then 0 else B.country_italy end country_italy,
+	       case when A.weight is null then 0 else A.country_spain end + case when B.weight is null then 0 else	B.country_spain end country_spain,
+	       case when A.weight is null then 0 else A.country_other end + case when B.weight is null then 0 else	B.country_other end country_other,
+	       0::real as p_agegroup_preschool,
+	       0::real as p_agegroup_toddler,
+	       0::real as p_agegroup_kids,
+	       0::real as p_agegroup_tnt,
+	       0::real as p_agegroup_family,
+	       0::real as p_genre_animation,
+	       0::real as p_genre_liveaction,
+	       0::real as p_genre_education,
+	       0::real as p_genre_featurefilm,
+	       0::real as p_genre_art,
+	       0::real as p_genre_game,
+	       0::real as p_genre_shorts,
+	       0::real as p_genre_other,
+	       0::real as p_boys,
+	       0::real as p_girls,
+
+	       0::real as p_country_france,
+	       0::real as p_country_uk,
+	       0::real as p_country_canada,
+	       0::real as p_country_germany,
+	       0::real as p_country_us,
+	       0::real as p_country_southkorea,
+	       0::real as p_country_china,
+	       0::real as p_country_brazil,
+	       0::real as p_country_italy,
+	       0::real as p_country_spain,
+	       0::real as p_country_other
+	from %I A
+	full outer join %I B
+	on A.buyerid = B.buyerid)
+	$tmpl2$;
+
+	tmpl3	text :=
+	$tmpl3$
+	update %s
+       	set p_agegroup_preschool = agegroup_preschool::real / weight,
+	    p_agegroup_toddler = agegroup_toddler::real / weight,
+       	    p_agegroup_kids = agegroup_kids::real / weight,
+       	    p_agegroup_tnt = agegroup_tnt::real / weight,
+       	    p_agegroup_family = agegroup_family::real / weight,
+       	    p_genre_animation = genre_animation::real / weight,
+       	    p_genre_liveaction = genre_liveaction::real / weight,
+	    p_genre_education = genre_education::real / weight,
+	    p_genre_featurefilm = genre_featurefilm::real / weight,
+	    p_genre_art = genre_art::real / weight,
+	    p_genre_game = genre_game::real / weight,
+	    p_genre_shorts = genre_shorts::real / weight,
+	    p_genre_other = genre_other::real / weight,
+	    p_boys = boys::real / weight,
+	    p_girls = girls::real / weight,
+	    p_country_france = country_france::real / weight,
+	    p_country_uk = country_uk::real / weight,
+	    p_country_canada = country_canada::real / weight,
+	    p_country_germany = country_germany::real / weight,
+	    p_country_us = country_us::real / weight,
+	    p_country_southkorea = country_southkorea::real / weight,
+	    p_country_china = country_china::real / weight,
+	    p_country_brazil = country_brazil::real / weight,
+	    p_country_italy = country_italy::real / weight,
+	    p_country_spain = country_spain::real / weight,
+	    p_country_other = country_other::real / weight
+	$tmpl3$;
+begin
+	execute format (tmpl1, new_profiles_table_out);
+	execute format (tmpl2, new_profiles_table_out, old_profiles_table_in, update_profiles_table_in);
+	execute format (tmpl3, new_profiles_table_out);
+end $merge_buyers_profiles_withcountry$ language plpgsql;
 
 create or replace function create_buyers_profiles_withcountry
 (
