@@ -91,4 +91,4 @@ select create_products_profiles ('products_2015', 'products_profiles_2015');
 
 \i prolog_2016.sql
 
-\qecho '>>>>>>>>>> END OF BOOST'
+\qecho '>>>>>>>>>> END OF BOOT'
