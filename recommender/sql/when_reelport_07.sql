@@ -1,3 +1,5 @@
+\set ON_ERROR_STOP on
+
 -- !!!!!!
 -- !!!!!!
 
@@ -9,7 +11,8 @@
 drop table if exists reelport_2016_07;
 ---- CHANGE FILE NAME !
 create table reelport_2016_07 (like reelport_pattern_2016);
-\copy reelport_2016_07 from '/home/thierry/MIP/data/2016/EXTRACT_2016-fixed_Playlist_20160929_clean.csv' with csv delimiter ';' quote '"' header;
+--\copy reelport_2016_07 from '/home/thierry/MIP/data/2016/EXTRACT_2016-fixed_Playlist_20160929_clean.csv' with csv delimiter ';' quote '"' header;
+\copy reelport_2016_07 from '/home/thierry/MIP/data/2016/extract_2016_fixed_Playlist_test10072016_clean.csv' with csv delimiter ';' quote '"' header;
 alter table reelport_2016_07 drop column Shortlisted;
 alter table reelport_2016_07 drop column RecommendedVia;
 alter table reelport_2016_07 drop column FirstActionAt;
@@ -56,11 +59,15 @@ create index products_cosim_withcountry_2016_idx_kb on products_cosim_withcountr
 
 \qecho '>>>>>>>>> BUYER PROFILES'
 select create_buyers_profiles_withcountry ('reelport_2016', 'products_profiles_withcountry_2013_2016', 'buyers_profiles_withcountry_2016');
+/*
 alter table buyers_profiles_withcountry_2016 add primary key (buyerid);
 drop table if exists buyers_profiles_withcountry_2013_2016;
 create table buyers_profiles_withcountry_2013_2016 as (
        select * from buyers_profiles_withcountry_2013_2015 union
        select * from buyers_profiles_withcountry_2016);
+*/
+select merge_buyers_profiles_withcountry ('buyers_profiles_withcountry_2013_2015', 'buyers_profiles_withcountry_2016', 'buyers_profiles_withcountry_2013_2016');
+alter table buyers_profiles_withcountry_2013_2016 add primary key (buyerid);
 
 -- !!
 -- HERE segments_withcountries_2013_2016 SHOULD BE RECOMPUTED
@@ -148,5 +155,7 @@ drop table if exists reco_list_prop2;
 create table reco_list_prop2 as select reco4reelport ('reco_prop2_clean', 100);
 
 \copy reco_list_prop2 to '/home/thierry/MIP/recommender/toreel/safenet_1007_2.csv'
+
+select test_reelport ('reelport_2016', 'unexpected_buyers', 'unexpected_products');
 
 \qecho '>>>>>>>>>>> END OF PROCESS'
