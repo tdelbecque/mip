@@ -116,3 +116,93 @@ begin
 	return;
 end
 $$ language plpgsql;
+
+/*
+create or replace function create_train_data_for_cosim_learning ()
+returns void as
+$$
+	drop table if exists train_data_for_cosim_learning;
+	create table train_data_for_cosim_learning as (
+       	       select x.co_agegroup_preschool, x.co_agegroup_toddler,
+       	       	      x.co_agegroup_kids, x.co_agegroup_tnt, x.co_agegroup_family,
+	      	      x.co_genre_animation, x.co_genre_liveaction, x.co_genre_education, 
+	      	      x.co_genre_featurefilm, x.co_genre_art, x.co_genre_game, x.co_genre_shorts, x.co_genre_other,
+	      	      x.co_boys, x.co_girls,
+	      	      x.co_country_france, x.co_country_uk, x.co_country_canada, x.co_country_germany, x.co_country_us,
+	      	      x.co_country_southkorea, x.co_country_china, x.co_country_brazil, x.co_country_italy,
+	      	      x.co_country_spain, x.co_country_other,
+	      	      b.ka, b.kb
+	   	from products_cosim_0_withcountry_2016 x
+	   	left outer join cousage_2016 b
+	   	on x.ka = b.ka and x.kb = b.kb);
+
+	alter table train_data_for_cosim_learning add column flag smallint;
+	update train_data_for_cosim_learning set flag = 1 where ka is not null;
+	update train_data_for_cosim_learning set flag = 0 where ka is null;
+	alter table train_data_for_cosim_learning drop column ka;
+	alter table train_data_for_cosim_learning drop column kb;
+	
+	--\copy train_data_for_cosim_learning to train_data_for_cosim_learning.csv 
+$$ language sql;
+*/
+
+create or replace function favorite_rank_avg_from_cosim ()
+returns real as
+$$
+declare
+	a	real;
+begin
+	execute format ('%s', 'drop table if exists rnk1');
+	execute format ('%s', 'drop table if exists rnk2');
+	execute format ('%s', 'create table rnk1 as
+	       (select ka, kb, co_sim, rank() over (partition by ka order by co_sim desc, tiebreaker) as rnk
+	       from (select *, random() as tiebreaker from products_cosim_0_withcountry_2016 where ka != kb) A)');
+	execute format ('%s', 'create table rnk2 as (select A.* from rnk1 A, cousage_2016 B where A.ka = B.ka and A.kb = B.kb and B.ka != B.kb)');
+	execute format ('%s', 'select avg(rnk)::real from rnk2') into a;
+	return a;
+end
+$$ language plpgsql;
+
+create or replace function test_reelport
+(
+       IN	reelport_table_in		text, -- new reel file
+       IN	unexpected_buyers_table		text, -- undeclared buyers
+       IN	unexpected_products_table	text  -- undeclared products
+)
+returns void as $test_reelport$
+declare
+	tmpl1 text :=
+	$tmpl1$
+	drop table if exists %I
+	$tmpl1$;
+
+	tmpl2 text :=
+	$tmpl2$
+	create table %I as
+	(
+	select distinct buyerid from (
+	       select A.buyerid, B.norm_personid
+	       from %I A
+	       left outer join participants_2016 B
+	       on 'RM' || B.norm_personid = A.buyerid and x102791_role like 'buyer%%') X
+	where X.norm_personid is null)
+	$tmpl2$;
+
+	tmpl3 text :=
+	$tmpl3$
+	create table %I as
+	(
+	select distinct screeningid from ( 
+	       select screeningid, screeningnumber
+	       from %I
+	       left outer join products_2016
+	       on screeningid = screeningnumber) X
+	where screeningnumber is null)
+	$tmpl3$;
+x text;
+begin
+	execute format (tmpl1, unexpected_buyers_table);
+	execute format (tmpl1, unexpected_products_table);
+	execute format (tmpl2, unexpected_buyers_table, reelport_table_in);
+	execute format (tmpl3, unexpected_products_table, reelport_table_in);
+end $test_reelport$ language plpgsql;
