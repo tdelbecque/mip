@@ -63,10 +63,6 @@ declare
 	insert into %s
 	select A.screeningnumber	as ka,
 	       B.screeningnumber	as kb,
-	       ---------------------------------------------------------------------
-	       0			as co_play,
-	       0			as co_screen,
-	       0			as co_usage,
 	       ---------------------------------------------------------------------	       
 	       A.agegroup_preschool * B.agegroup_preschool	as co_agegroup_preschool,
 	       A.agegroup_toddler * B.agegroup_toddler 		as co_agegroup_toddler,
@@ -93,9 +89,13 @@ declare
 	       A.country_brazil * B.country_brazil 	 as co_country_brazil,
 	       A.country_italy * B.country_italy 		 as co_country_italy,
 	       A.country_spain * B.country_spain 		 as co_country_spain,
-	       A.country_other * B.country_other 		 as co_country_other,
-	       
-	       0       	 					as co_sim
+	       A.country_other * B.country_other 		 as co_country_other,	       
+	       0       	 					as co_sim,
+	       ---------------------------------------------------------------------
+	       0			as co_play,
+	       0			as co_screen,
+	       0			as co_usage
+
 	       from %s A, %s B
 	$tmpl1$;
 begin
