@@ -12,7 +12,8 @@ drop table if exists reelport_2016_07;
 ---- CHANGE FILE NAME !
 create table reelport_2016_07 (like reelport_pattern_2016);
 --\copy reelport_2016_07 from '/home/thierry/MIP/data/2016/EXTRACT_2016-fixed_Playlist_20160929_clean.csv' with csv delimiter ';' quote '"' header;
-\copy reelport_2016_07 from '/home/thierry/MIP/data/2016/extract_2016_fixed_Playlist_test10072016_clean.csv' with csv delimiter ';' quote '"' header;
+--\copy reelport_2016_07 from '/home/thierry/MIP/data/2016/extract_2016_fixed_Playlist_test10072016_clean.csv' with csv delimiter ';' quote '"' header;
+\copy reelport_2016_07 from '/home/thierry/MIP/data/2016/reelport_last.csv' with csv delimiter ';' quote '"' header;
 alter table reelport_2016_07 drop column Shortlisted;
 alter table reelport_2016_07 drop column RecommendedVia;
 alter table reelport_2016_07 drop column FirstActionAt;
@@ -77,13 +78,21 @@ alter table buyers_profiles_withcountry_2013_2016 add primary key (buyerid);
 \qecho 'IN CASE OF FAILURE : mapBuyersSegments2016 ()'
 \prompt '(enter)' 'xyz'
 -- this is set segid = 0 to buyers not assigned to a segment
-drop table if exists buyer_segments_map_2016;
-create table buyer_segments_map_2016 as (
-       select A.buyerid, B.segid from (
+drop table if exists effective_buyerid;
+create table effective_buyerid as (
+       select distinct buyerid from (
        	      select distinct norm_personid as buyerid
 	      	     from participants_2016
 		     where norm_personid is not null and x102791_role like 'buyer%'
-	      ) A
+	      union
+	      select buyerid from buyers_profiles_withcountry_2016
+       ) X
+);
+
+drop table if exists buyer_segments_map_2016;
+create table buyer_segments_map_2016 as (
+       select A.buyerid, B.segid
+       	      from effective_buyerid A
 	      left outer join segments_withcountries_2013_2016 B
 	      on A.buyerid = B.buyerid);
 update buyer_segments_map_2016 set segid = 0 where segid is null;
@@ -154,7 +163,7 @@ create table reco_prop2_clean as
 drop table if exists reco_list_prop2;
 create table reco_list_prop2 as select reco4reelport ('reco_prop2_clean', 100);
 
-\copy reco_list_prop2 to '/home/thierry/MIP/recommender/toreel/safenet_1007_2.csv'
+\copy reco_list_prop2 to '/home/thierry/MIP/recommender/toreel/safenet_post.csv'
 
 select test_reelport ('reelport_2016', 'unexpected_buyers', 'unexpected_products');
 
