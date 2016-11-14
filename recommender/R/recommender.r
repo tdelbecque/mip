@@ -139,3 +139,85 @@ mapBuyersSegments2016 <- function () {
                             sep = ''))
     closeConnection (con)
 }
+
+createCosimTrainData <- function (file) {
+    data <- read.table (file, h=FALSE, sep='\t')
+    names (data) <- c('co_agegroup_preschool',
+                      'co_agegroup_toddler',
+                      'co_agegroup_kids',
+                      'co_agegroup_tnt',
+                      'co_agegroup_family',
+                      'co_genre_animation',
+                      'co_genre_liveaction', 
+                      'co_genre_education', 
+                      'co_genre_featurefilm', 
+                      'co_genre_art', 
+                      'co_genre_game', 
+                      'co_genre_shorts', 
+                      'co_genre_other', 
+                      'co_boys', 
+                      'co_girls', 
+                      'co_country_france', 
+                      'co_country_uk', 
+                      'co_country_canada', 
+                      'co_country_germany', 
+                      'co_country_us', 
+                      'co_country_southkorea', 
+                      'co_country_china', 
+                      'co_country_brazil', 
+                      'co_country_italy', 
+                      'co_country_spain', 
+                      'co_country_other', 
+                      'flag')
+
+    m <- glm (flag ~ ., data=data)
+    write.table (m$coefficients, sep='*', quote=FALSE, eol=' +\n')
+    data
+}
+
+createProdsegTrainData <- function (file) {
+    data <- read.table (file, h=FALSE, sep='\t')
+    names (data) <- c (
+        'segid',
+        'kb',
+        'p_agegroup_preschool',
+        'p_agegroup_toddler',
+        'p_agegroup_kids',
+        'p_agegroup_tnt',
+        'p_agegroup_family',
+        'p_genre_animation',
+        'p_genre_liveaction',
+        'p_genre_education',
+        'p_genre_featurefilm',
+        'p_genre_art',
+        'p_genre_game',
+        'p_genre_shorts',
+        'p_genre_other',
+        'p_boys',
+        'p_girls',
+        'p_country_france',
+        'p_country_uk',
+        'p_country_canada',
+        'p_country_germany',
+        'p_country_us',
+        'p_country_southkorea',
+        'p_country_china',
+        'p_country_brazil',
+        'p_country_italy',
+        'p_country_spain',
+        'p_country_other',
+        'sim',
+        'buyerid',
+        'tiebreaker',
+        'flag',
+        'rnk')
+
+    data$flagnum <- ifelse (data$flag == 't', 1, 0)
+    data$flag <- NULL
+    data$segid <- data$kb <- data$sim <-
+        data$buyerid <- data$tiebreaker <- data$flag <- data$rnk  <- NULL
+
+    m <- glm (flagnum ~ ., data=data)
+    write.table (m$coefficients, sep='*', quote=FALSE, eol=' +\n')
+    data
+}
