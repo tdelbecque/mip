@@ -10,10 +10,20 @@ declare
 	create table %s as (
 	       select buyerid,
 	       	      screeningid,
+		      max (playlisted::boolean::integer) playlisted,
+	       	      sum (time2sec (totalscreeningtime)) screensec
+	       from %s group by buyerid, screeningid)
+	$tmpl1$;
+/*
+$tmpl1$
+	create table %s as (
+	       select buyerid,
+	       	      screeningid,
 		      playlisted::boolean::integer,
 	       	      time2sec (totalscreeningtime) as screensec
 	       from %s)
 	$tmpl1$;
+*/
 begin
 	execute format ('drop table if exists %s', activity_table_out);
 	execute format (tmpl1, activity_table_out, reelport_table_in);

@@ -174,6 +174,7 @@ declare
 	    p_country_italy = country_italy::real / weight,
 	    p_country_spain = country_spain::real / weight,
 	    p_country_other = country_other::real / weight
+	    where weight > 0
 	$tmpl3$;
 begin
 	execute format (tmpl1, new_profiles_table_out);
@@ -196,43 +197,44 @@ declare
 	create table buyers_profiles_tmp as (
 	select substring(A.buyerid, 3)::integer as buyerid,
 	       B.*
-	       from %I A, %I B
-	       where A.screeningid = B.screeningnumber)
+	       from %I A
+	       left outer join %I B
+	       on A.screeningid = B.screeningnumber)
 	$tmpl1$;
 
 	tmpl2	text :=
 	$tmpl2$
 	create table %I as (
-	select buyerid, count(*) as weight,
-       	       SUM(agegroup_preschool) as agegroup_preschool,
-	       SUM(agegroup_toddler) as agegroup_toddler,
-	       SUM(agegroup_kids) as agegroup_kids,
-	       SUM(agegroup_tnt) as agegroup_tnt,
-	       SUM(agegroup_family) as agegroup_family,
+	select buyerid, sum((screeningnumber is not null)::integer) as weight,
+       	       COALESCE (SUM(agegroup_preschool), 0) as agegroup_preschool,
+	       COALESCE (SUM(agegroup_toddler), 0) as agegroup_toddler,
+	       COALESCE (SUM(agegroup_kids), 0) as agegroup_kids,
+	       COALESCE (SUM(agegroup_tnt), 0) as agegroup_tnt,
+	       COALESCE (SUM(agegroup_family), 0) as agegroup_family,
 	       --------------------------------------------------------------------
-	       SUM(genre_animation) as genre_animation,
-	       SUM(genre_liveaction) as genre_liveaction,
-	       SUM(genre_education) as genre_education,
-	       SUM(genre_featurefilm) as genre_featurefilm,
-	       SUM(genre_art) as genre_art,
-	       SUM(genre_game) as genre_game,
-	       SUM(genre_shorts) as genre_shorts,
-	       SUM(genre_other) as genre_other,
+	       COALESCE (SUM(genre_animation), 0) as genre_animation,
+	       COALESCE (SUM(genre_liveaction), 0) as genre_liveaction,
+	       COALESCE (SUM(genre_education), 0) as genre_education,
+	       COALESCE (SUM(genre_featurefilm), 0) as genre_featurefilm,
+	       COALESCE (SUM(genre_art), 0) as genre_art,
+	       COALESCE (SUM(genre_game), 0) as genre_game,
+	       COALESCE (SUM(genre_shorts), 0) as genre_shorts,
+	       COALESCE (SUM(genre_other), 0) as genre_other,
 	       --------------------------------------------------------------------
-	       SUM(boys) as boys,
-	       SUM(girls) as girls,
+	       COALESCE (SUM(boys), 0) as boys,
+	       COALESCE (SUM(girls), 0) as girls,
 	       --------------------------------------------------------------------
-	       SUM(country_france) as country_france,
-	       SUM(country_uk) as country_uk,
-	       SUM(country_canada) as country_canada,
-	       SUM(country_germany) as country_germany,
-	       SUM(country_us) as country_us,
-	       SUM(country_southkorea) as country_southkorea,
-	       SUM(country_china) as country_china,
-	       SUM(country_brazil) as country_brazil,
-	       SUM(country_italy) as country_italy,
-	       SUM(country_spain) as country_spain,
-	       SUM(country_other) as country_other,
+	       COALESCE (SUM(country_france), 0) as country_france,
+	       COALESCE (SUM(country_uk), 0) as country_uk,
+	       COALESCE (SUM(country_canada), 0) as country_canada,
+	       COALESCE (SUM(country_germany), 0) as country_germany,
+	       COALESCE (SUM(country_us), 0) as country_us,
+	       COALESCE (SUM(country_southkorea), 0) as country_southkorea,
+	       COALESCE (SUM(country_china), 0) as country_china,
+	       COALESCE (SUM(country_brazil), 0) as country_brazil,
+	       COALESCE (SUM(country_italy), 0) as country_italy,
+	       COALESCE (SUM(country_spain), 0) as country_spain,
+	       COALESCE (SUM(country_other), 0) as country_other,
  
 	       0::real as p_agegroup_preschool,
 	       0::real as p_agegroup_toddler,
@@ -264,7 +266,7 @@ declare
 	from buyers_profiles_tmp
 	group by buyerid)
 	$tmpl2$;
-
+	
 	tmpl3	text :=
 	$tmpl3$
 	update %s
@@ -294,6 +296,7 @@ declare
 	    p_country_italy = country_italy::real / weight,
 	    p_country_spain = country_spain::real / weight,
 	    p_country_other = country_other::real / weight
+	    where weight > 0
 	$tmpl3$;
 begin
 	drop table if exists buyers_profiles_tmp;
